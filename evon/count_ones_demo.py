@@ -1,5 +1,4 @@
 # Import packages
-from audioop import cross
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -8,7 +7,8 @@ np.random.seed(8)
 
 # Define the fitness and network creation function
 from fitness import CountingOnes
-from networks import RandomBinaryNetwork
+from networks import RandomBinaryNetwork, PlotNetwork
+from ga import PlotStats
 
 # Define a big function with arguments such as:
 # nw_size, fitness_func, iterations, popsize, selection rates, crossover rates, mutation rates 
@@ -94,15 +94,26 @@ def main(
             k += 2
         
         # Mutation
+
+        ''' element wise mutation '''
+        '''
+        true_mutation_rate = mutation_rate / (network_size ** 2)
         for l in range(pop_size): # network
             for m in range(network_size): # row 
                 probs = np.random.random(network_size)
                 for n in range(network_size): # column
-                    if probs[n] <= mutation_rate / (network_size): #maybe not correct
+                    if probs[n] <= true_mutation_rate: #maybe not correct
                         if next_pop[l][m,n] == 0:
                             next_pop[l][m,n] = 1
                         if next_pop[l][m,n] == 1:
                             next_pop[l][m,n] = 0
+        '''
+
+        ''' hypermutation '''
+        probs = np.random.random(pop_size)
+        for l in range(pop_size):
+            if probs[l] <= mutation_rate:
+                pop[l] = RandomBinaryNetwork(network_size)
 
         # Elitism 
         next_pop[-1] = pop[fitness.index(max(fitness))]
@@ -113,28 +124,14 @@ def main(
     return avg_fitness_history, max_fitness_history, min_fitness_history, generation_history, elite_history
 
 avg_fitness_history, max_fitness_history, min_fitness_history, generation_history, elite_history = main(
-    100,
+    10,
     100, # must be even for crossover
-    1000,
+    10000,
     0.8,
-    0.01,
+    0.1,
 )
+
 # Produce nice graphs and show the best resulting network
-
-best = elite_history[-1]
-
-rows, cols = np.where(best == 1)
-edges = zip(rows.tolist(), cols.tolist())
-gr = nx.Graph()
-gr.add_edges_from(edges)
-nx.draw(gr)
-plt.show()
-
-# print(avg_fitness_history)
-plt.plot(avg_fitness_history, label = 'Avg')
-plt.plot(max_fitness_history, label = 'Max')
-plt.plot(min_fitness_history, label = 'Min')
-plt.title('Fitness over time')
-plt.legend()
-plt.show()
+PlotNetwork(elite_history[-1])
+PlotStats(avg_fitness_history, max_fitness_history, min_fitness_history)
 
