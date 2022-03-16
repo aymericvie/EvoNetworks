@@ -34,22 +34,28 @@ def main(
 
     # Loop
     for generation in tqdm(range(max_gen)):
-        # print('___')
+
+        if generation > 0:
+            # Recording fitness values max-min-avg, best solution history
+            avg_fitness = np.mean(fitness)
+            max_fitness = max(fitness)
+            min_fitness = min(fitness)
+            best = pop[fitness.index(max(fitness))]
+
+            avg_fitness_history.append(avg_fitness) 
+            max_fitness_history.append(max_fitness)
+            min_fitness_history.append(min_fitness)
+            generation_history.append(generation)
+            elite_history.append(best)
+
         # Compute the fitness and store it in a vector
         fitness = []
         for i in range(pop_size):
             fitness.append(CountingOnes(pop[i]))
-        # print("fitness")
-        # print(fitness)
 
         # Fitness proportionate Selection
-
         selection_proba = fitness / sum(fitness)
-        # print("selection_proba")
-        # print(selection_proba)
         selection_cum_proba = np.cumsum(selection_proba)
-        # print("selection_cumproba")
-        # print(selection_cum_proba)
 
         randoms = np.random.random(pop_size)
         next_pop = []
@@ -66,9 +72,6 @@ def main(
                 raise ValueError('Iteration through cumulative probabilities did not find a proper match.')
             next_pop.append(pop[loc])
             next_index.append(loc)
-            # print([n, loc])
-        # print("index")
-        # print(next_index)
 
         # Crossover 
         points = np.random.randint(0, network_size-1,size=pop_size)
@@ -95,40 +98,31 @@ def main(
             for m in range(network_size): # row 
                 probs = np.random.random(network_size)
                 for n in range(network_size): # column
-                    if probs[n] <= mutation_rate:
+                    if probs[n] <= mutation_rate / (network_size): #maybe not correct
                         if next_pop[l][m,n] == 0:
                             next_pop[l][m,n] = 1
                         if next_pop[l][m,n] == 1:
                             next_pop[l][m,n] = 0
 
-        # Recording fitness values max-min-avg, best solution history
-        avg_fitness = np.mean(fitness)
-        max_fitness = max(fitness)
-        min_fitness = min(fitness)
-        best = pop[fitness.index(max(fitness))]
+        # Elitism 
+        next_pop[-1] = pop[fitness.index(max(fitness))]
+        pop[:] = next_pop 
+        del next_pop 
 
-        avg_fitness_history.append(avg_fitness) 
-        max_fitness_history.append(max_fitness)
-        min_fitness_history.append(min_fitness)
-        generation_history.append(generation)
-        elite_history.append(best)
-
-        pop = next_pop 
 
     return avg_fitness_history, max_fitness_history, min_fitness_history, generation_history, elite_history
 
 avg_fitness_history, max_fitness_history, min_fitness_history, generation_history, elite_history = main(
-    10,
-    10, # must be even for crossover
     100,
+    100, # must be even for crossover
+    1000,
     0.8,
-    0.05,
+    0.01,
 )
 # Produce nice graphs and show the best resulting network
 
 best = elite_history[-1]
 
-# def show_graph_with_labels(adjacency_matrix):
 rows, cols = np.where(best == 1)
 edges = zip(rows.tolist(), cols.tolist())
 gr = nx.Graph()
